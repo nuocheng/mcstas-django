@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+    <head>
+        <meta charset="UTF-8">
+        <title>斩波器辅助系统</title>
+        <meta name="renderer" content="webkit">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+        <link rel="stylesheet" href="./css/font.css">
+        <link rel="stylesheet" href="./css/xadmin.css">
+		<link rel="stylesheet" href="./css/index.css">
+		<link rel="stylesheet" href="./css/bootstrap.css">
+        <script src="./lib/layui/layui.js" charset="utf-8"></script>
+        <script type="text/javascript" src="./js/xadmin.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="layui-fluid">
+            <div class="layui-row layui-col-space15">
+
+                <div class="layui-col-sm12 layui-col-md6" >
+                    <div class="layui-card" >
+                        <div class="layui-card-header">基本参数</div>
+                        <div class="layui-card-body" style="min-height: 90px;">
+                            <div  id="app1" class="layui-col-sm12" >
+							
+									  <!-- 主体区域 -->
+										  <section id="todoapp">
+											<!-- 输入框 -->
+
+											
+											  <button v-model="inputValue" @keyup.enter="add" @click="add" autofocus="autofocus" autocomplete="off" placeholder=""
+												class="new-todo" >按回车或者点击进行参数添加</button>
+
+											<!-- 列表区域 -->
+											<section class="main">
+											  <ul class="todo-list">
+												<li class="todo" v-for="(item,index) in list">
+												  <div class="view">
+													<span class="index">{{ index+1 }}.</span>
+													<div style="padding-top:6px;margin-bottom:2px;margin-left:58px;">
+														
+														<select class="form-control col-sm-2 control-label" style="width:45%;">
+																<option>名称1</option>
+																<option>名称1</option>
+																<option>名称1</option>
+																<option>名称1</option>
+														</select>
+														<input type="text" class="form-control" id="firstname" 
+																	   placeholder="请输入参数值" style="width:30%;padding:0;">
+														
+													</label>
+													<button class="destroy" @click="remove(index)"></button>
+												  </div>
+												</li>
+											  </ul>
+											</section>
+											<!-- 统计和清空 -->
+											<footer class="footer" >
+											  <span class="todo-count" v-if="list.length!=0">
+												<strong>{{list.length}}</strong> items left
+											  </span>
+											  <button class="clear-completed" @click="clear_list()">
+												Clear
+											  </button>
+											</footer>
+										  </section>
+										  <!-- 底部 -->
+									 <script>
+										var app = new Vue({
+										  el: "#todoapp",
+										  data: {
+											list: [],
+											inputValue: "请输入参数,按Enter进行添加"
+										  },
+										  methods: {
+											add: function () {
+											  this.list.push(this.inputValue);
+											},
+											remove:function(index){
+											  console.log("删除");
+											  console.log(index);
+											  this.list.splice(index,1);
+											},
+											clear_list:function(){
+												this.list=[]
+											}
+										  },
+										})
+									  </script>
+							
+							
+							</div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-sm12 layui-col-md6">
+                    <div class="layui-card">
+                        <div class="layui-card-header">数据显示</div>
+                        <div class="layui-card-body" style="min-height: 400px">
+                            <div  id="app2" class="layui-col-sm12" style="height: 300px;">
+							
+							</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+		
+    </body>
+</html>
