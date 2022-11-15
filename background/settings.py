@@ -86,14 +86,13 @@ WSGI_APPLICATION = 'background.wsgi.application'
 
 DATABASES = {
     'default': {
-        #'ENGINE': 'django.db.backends.mysql',
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        #'NAME': "model_data",
-        #'USER':"root",
-        #"PASSWORD":"nuocheng",
-        #"RORT":"3306",
-        #"HOST":"127.0.0.1"
+        'ENGINE': 'django.db.backends.mysql',
+        #'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': "model_data",
+        'USER':"root",
+        "PASSWORD":"nuocheng",
+        "RORT":"3306",
+        "HOST":"127.0.0.1"
     }
 }
 

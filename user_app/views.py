@@ -20,15 +20,18 @@ def make_dis(username):
     data={
         "name":['nuocheng','xiaoming','xiaohong'],
         "gender":['man','woman','man'],
-        "age":[11,34,29]
+        "age":[11,34,29],
+        'math':[100,96,95],
+        "english":[75,86,45],
+        "history":[80,76,92]
     }
     data_info=pd.DataFrame(data=data)
     path1 = os.path.join(BASE_DIR, 'static', 'upload', username,'1.csv')
     path2 = os.path.join(BASE_DIR, 'static', 'upload', username,'2.csv')
     path3 = os.path.join(BASE_DIR, 'static', 'upload', username,'3.csv')
-    data_info.to_csv(path1)
-    data_info.to_csv(path2)
-    data_info.to_csv(path3)
+    data_info.to_csv(path1,index=0)
+    data_info.to_csv(path2,index=0)
+    data_info.to_csv(path3,index=0)
     path1='{}/1.csv'.format(username)
     path2='{}/2.csv'.format(username)
     path3='{}/3.csv'.format(username)
@@ -86,7 +89,69 @@ def get_user_keyword(request):
             info_list.append(info)
         return JsonResponse({"info":info_list})
 
+#数据下载
+@exist_user_login
+def users_download_data(request):
+    if request.method=='GET':
+        userdemo=get_user(request)
+        id=request.GET.get("id")
+        file_str=mainFile.objects.get(userid=userdemo,id=id)
+        return JsonResponse({"file":"http://127.0.0.1:8000/static/upload/"+str(file_str.output_file)})
 
+#权限请求
+@exist_user_login
+def users_columns_data(request):
+    if request.method=='GET':
+        userdemo=get_user(request)
+        if userdemo.stat!=0:
+            zero_menu=[
+                {
+                    'path': "/fuzhu",
+                    'name': "user",
+                    'lable': "辅助系统",
+                    'icon': "user",
+                    'url': "userManage/userManage"
+                },
+                {
+                    'path': "/xianka",
+                    'name': "user",
+                    'lable': "显卡计算平台",
+                    'icon': "user",
+                    'url': "userManage/userManage"
+                },
+                {
+                    'label': "数据",
+                    'icon': "location",
+                    'children': [
+                        {
+                            'path': "/otherone",
+                            'name': "page1",
+                            'lable': "数据操作",
+                            'icon': "setting",
+                            'url': "other/pageOne"
+                        },
+                    ]
+                }
+            ]
+        else:
+            zero_menu = [
+                {
+                    'path': "/fuzhu",
+                    'name': "user",
+                    'lable': "辅助系统",
+                    'icon': "user",
+                    'url': "userManage/userManage"
+                },
+                {
+                    'path': "/xianka",
+                    'name': "user",
+                    'lable': "显卡计算平台",
+                    'icon': "user",
+                    'url': "userManage/userManage"
+                },
+
+            ]
+        return JsonResponse({"info":zero_menu})
 
 #参数添加
 @exist_user_login
@@ -146,8 +211,10 @@ def update_file_user(request):
             #读取文件
             with open(os.path.join(BASE_DIR,"static",'upload',str(file_demo.inputfile)),'r') as fw:
                 file_data=json.load(fw)
-            return JsonResponse({"data":file_data,"fileid":file_demo.pk})
+            print(file_data)
+            return JsonResponse({"data":file_data,"fileid":file_demo.pk,"flag":1})
         except:
+            file_demo.delete()
             return JsonResponse({"flag":0})
 
 #用户参数更改并运行
@@ -181,7 +248,61 @@ def users_update_data_run(request):
             file_list.append(info)
         return JsonResponse({"data":file_list})
 
+#用户点击数据进行数据可视化
+@exist_user_login
+def users_run_data(request):
+    if request.method=='GET':
+        userdemo = get_user(request)
+        file_id=request.GET.get("id")
+        get_file=mainFile.objects.get(userid=userdemo,pk=file_id)
+        file_path=os.path.join(BASE_DIR,'static','upload',str(get_file.output_file))
+        #pandas进行读取文件
+        data=pd.read_csv(file_path)
+        json_data=data.to_json(orient ="records")
+        info={
+            "name":data['name'].tolist(),
+            "math":data['math'].tolist(),
+            "english":data['english'].tolist(),
+            "history":data['history'].tolist()
+        }
+        return JsonResponse({"data":json.loads(str(json_data)),"figure":info})
 
+
+@exist_user_login
+def users_run_all_data(request):
+    if request.method=='GET':
+        userdemo = get_user(request)
+        main_file_list = mainFile.objects.filter(userid=userdemo)
+        file_list = []
+        # print(main_file_list)
+        for item in main_file_list:
+            info = {
+                "id": item.pk,
+                "username": item.userid.name,
+                "fileid_name": str(item.fileid.inputfile),
+                "output_file": item.output_file
+            }
+            file_list.append(info)
+        return JsonResponse({"data": file_list})
+
+@exist_user_login
+def users_deal_data(request):
+    if request.method == 'GET':
+        userdemo = get_user(request)
+        file_id = request.GET.get("id")
+        get_file = mainFile.objects.get(userid=userdemo, pk=file_id)
+        get_file.delete()
+        main_file_list = mainFile.objects.filter(userid=userdemo)
+        file_list = []
+        for item in main_file_list:
+            info = {
+                "id": item.pk,
+                "username": item.userid.name,
+                "fileid_name": str(item.fileid.inputfile),
+                "output_file": item.output_file
+            }
+            file_list.append(info)
+        return JsonResponse({"data": file_list})
 #用户登录
 def login_user(request):
     if request.method=='POST':

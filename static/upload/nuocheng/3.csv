@@ -1,4 +1,4 @@
-,name,gender,age
-0,nuocheng,man,11
-1,xiaoming,woman,34
-2,xiaohong,man,29
+name,gender,age,math,english,history
+nuocheng,man,11,100,75,80
+xiaoming,woman,34,96,86,76
+xiaohong,man,29,95,45,92
