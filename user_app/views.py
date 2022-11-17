@@ -1,15 +1,18 @@
 from django.shortcuts import render,redirect,reverse
 from django.http import JsonResponse
 import json
-from background.settings import BASE_DIR
+from .sshCononection import SSHConnection as ssh
 import numpy as np
+import paramiko
 import hashlib
 import time
 import string
 import pandas as pd
 import os
+from .mcstastools import *
 from collections import defaultdict
 from backadmin.models import *
+from background.settings import BASE_DIR
 # Create your views here.
 #文件目录生成
 def make_dis(username):
@@ -157,19 +160,13 @@ def users_columns_data(request):
 @exist_user_login
 def add_user_keyword(request):
     if request.method=='POST':
-
-        userdemo=get_user(request)
-        keyword=request.POST.get("keyword")
-        # print(keyword)
-        keyword_list=keyword.split(";")
-        json_info={}
-        for item in keyword_list:
-            item=item.replace("'",'"')
-            # print(item)
-            json_info.update(json.loads(item))
-        # print(json_info)
-        outputFile.objects.create(userid=userdemo,keyword=str(json_info))
-        output_list=outputFile.objects.filter(userid=userdemo)
+        userdemo = get_user(request)
+        keyword = request.POST.get("keyword")
+        json_info = keyword
+        outputFile.objects.create(userid=userdemo, keyword=str(json_info))
+        userdemo.count+=1
+        userdemo.save()
+        output_list = outputFile.objects.filter(userid=userdemo)
         info_list=[]
         for item in output_list:
             info={
@@ -209,33 +206,122 @@ def update_file_user(request):
         file_demo=updateFile.objects.create(userid=userdemo,inputfile=file)
         try:
             #读取文件
-            with open(os.path.join(BASE_DIR,"static",'upload',str(file_demo.inputfile)),'r') as fw:
-                file_data=json.load(fw)
-            print(file_data)
-            return JsonResponse({"data":file_data,"fileid":file_demo.pk,"flag":1})
+            filename=os.path.join(BASE_DIR,"static",'upload',str(file_demo.inputfile))
+            a = Instr_Read(filename)
+            a.get_instr_para()
+            return JsonResponse({"data":a.dict_para,"fileid":file_demo.pk,"flag":1})
         except:
             file_demo.delete()
             return JsonResponse({"flag":0})
+
+#多文件上传
+@exist_user_login
+def update_many_file_user(request):
+    if request.method=='POST':
+        userdemo = get_user(request)
+        file_list=request.FILES.getlist("file")
+        file_info=[]
+        for item in file_list:
+            file_demo=updateFile.objects.create(userid=userdemo,inputfile=item)
+            info={
+                "id":file_demo.pk,
+                "name":str(file_demo.inputfile),
+                "create":file_demo.create_at
+            }
+            file_info.append(info)
+        #返回上传的信息
+
+        return JsonResponse({"info":file_info,"flag":1})
+
+#文件的删除
+@exist_user_login
+def delete_many_file_user(request):
+    if request.method=='GET':
+        userdemo = get_user(request)
+        id=request.GET.get("id")
+        update_demo=updateFile.objects.get(pk=id,userid=userdemo)
+        update_demo.delete()
+        file_info=[]
+        for item in updateFile.objects.get(userid=userdemo,flag=0):
+            info={
+                "id":item.pk,
+                "name":str(item.inputfile),
+                "create":item.create_at
+            }
+            file_info.append(info)
+        #返回上传的信息
+        return JsonResponse({"info":file_info})
+
+
+
 
 #用户参数更改并运行
 @exist_user_login
 def users_update_data_run(request):
     if request.method=='POST':
         userdemo = get_user(request)
-        context=request.POST.get("context")
-        context=json.loads(context)
-        file_id=request.POST.get("fileid")
-        change_file=updateFile.objects.filter(id=file_id,userid=userdemo).first()
-        with open(os.path.join(BASE_DIR, "static", 'upload', str(change_file.inputfile)), 'w') as fw:
-            json.dump(context,fw)
-        #模拟文件生成
-        file_list=make_dis(userdemo.name)
-        mainFile.objects.create(userid=userdemo,fileid=change_file,output_file=file_list[0])
-        mainFile.objects.create(userid=userdemo,fileid=change_file,output_file=file_list[1])
-        mainFile.objects.create(userid=userdemo,fileid=change_file,output_file=file_list[2])
+        #------------------------数据库获取
+        username=userdemo.name
+        mcstas_ip=userdemo.ipconfig
+        scp_path='/home/mcstas/Documents/{}/'.format(userdemo.name)
+        #-----------------用户上传
+        fileid=request.POST.get("fileid")
+        dirname=request.POST.get("dirname")
+        scp_path2 = '/home/mcstas/Documents/{}/{}/'.format(userdemo.name,dirname)
+        ncounts=request.POST.get("ncounts")
+        core_type = request.POST.get("core_type")
+        ncores = request.POST.get("ncores")
+        #------------------------------------------------------后期参数可能会进行修改-------
+        #获取该文件名
+        file=updateFile.objects.get(pk=fileid,userid=userdemo,flag=0)
+        instr_file=str(file.inputfile).split('/')[-1]
+        path=os.path.join(BASE_DIR,'static','upload',str(file.inputfile))
+        a = Instr_Read(path)
+        a.get_instr_para()
+        para_list = a.dict_para
+        b = Bashline_Create(dirname, username)
+        b.instr_bash(para_list)
+        b.creat_bash_line(ncounts, instr_file, core_type=core_type, ncores=ncores)
+        mingling=b.bashline  #最终命令
+        #远程连接
+        con=ssh(host=mcstas_ip,port=22,username='root',pwd="123456")
+        #首先创建一个用户文件夹
+        con.cmd("mkdir -p {}".format(scp_path))
+        #创建用户指定文件夹
+        con.cmd("mkdir -p {}".format(scp_path2))
+        #首先进行将服务器上文件scp上传到模型服务器上
+        user_file=updateFile.objects.filter(userid=userdemo,flag=0)
+        path_list=[]
+        for item in user_file:
+            path_list.append(os.path.join(BASE_DIR,'static','upload',str(item.inputfile)))
 
+        for item in path_list:
+            fname=item.split("/")[-1]
+            con.upload(item,'/home/mcstas/Documents/{}/'.format(userdemo.name))
+        # 将上传的文件标记为1
+        updateFile.objects.filter(userid=userdemo, flag=0).update(flag=1)
+        #在模型服务器上运行模型bash命令
+        con.cmd("cd /home/mcstas/Documents/{}/".format(userdemo.name))
+        #接收控制台输出
+        con.cmd(mingling)
+        #将生成的文件下载到本地
+        output=con.cmd("cd {}".format(scp_path2))
+        output_path=[]
+        for item in output:
+            output_path.append('/home/mcstas/Documents/{}/{}/{}'.format(userdemo.name,dirname,item))
+        #返回生成的文件进行保存到本服务器上
+        #为用户创建在static/下创建用户文件/次数
+        user_download_path=os.path.join(BASE_DIR,"static",userdemo.username,str(userdemo.count))
+        if not os.path.exists(user_download_path):
+            os.mkdir(user_download_path)
+        for item in output_path:
+            con.download(item,user_download_path)
+            name=item.split("/")[-1]
+            mainFile.objects.create(userid=userdemo,fileid=file,output_file="{}/{}/{}".format(userdemo.username,str(userdemo.count),name))  #--------------
+        # 远程连接结束
+        ssh.close()
         #将文件列表进行返回
-        main_file_list=mainFile.objects.filter(userid=userdemo,fileid=change_file)
+        main_file_list=mainFile.objects.filter(userid=userdemo,fileid=file)
         file_list=[]
         # print(main_file_list)
         for item in main_file_list:
