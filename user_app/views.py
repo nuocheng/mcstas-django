@@ -1,8 +1,8 @@
 from django.shortcuts import render,redirect,reverse
 from django.http import JsonResponse
 import json
-from .sshCononection import SSHConnection as ssh
-import numpy as np
+from .sshCononection import SSHConnection as sshs
+import numpy as np,re
 import paramiko
 import hashlib
 import time
@@ -207,6 +207,7 @@ def update_file_user(request):
         try:
             #读取文件
             filename=os.path.join(BASE_DIR,"static",'upload',str(file_demo.inputfile))
+            # print(filename)
             a = Instr_Read(filename)
             a.get_instr_para()
             return JsonResponse({"data":a.dict_para,"fileid":file_demo.pk,"flag":1})
@@ -264,11 +265,13 @@ def users_update_data_run(request):
         username=userdemo.name
         mcstas_ip=userdemo.ipconfig
         scp_path='/home/mcstas/Documents/{}/'.format(userdemo.name)
+
         #-----------------用户上传
-        fileid=request.POST.get("fileid")
+        fileid=request.POST.get("fileid")  #instre文件id
+        file_id_list = request.POST.getlist("fileid_list") #其他文件id
         dirname=request.POST.get("dirname")
         scp_path2 = '/home/mcstas/Documents/{}/{}/'.format(userdemo.name,dirname)
-        ncounts=request.POST.get("ncounts")
+        ncounts=int(request.POST.get("ncounts"))
         core_type = request.POST.get("core_type")
         ncores = request.POST.get("ncores")
         #------------------------------------------------------后期参数可能会进行修改-------
@@ -283,43 +286,68 @@ def users_update_data_run(request):
         b.instr_bash(para_list)
         b.creat_bash_line(ncounts, instr_file, core_type=core_type, ncores=ncores)
         mingling=b.bashline  #最终命令
+        print(mingling)
         #远程连接
-        con=ssh(host=mcstas_ip,port=22,username='root',pwd="123456")
+        # con=ssh(host=mcstas_ip,port=22,username='root',pwd="123456")
+        con=sshs(host="47.107.174.18",port=22,username='root',pwd="DtwfDVe3NpFnJA4")
+        con.connect()
         #首先创建一个用户文件夹
         con.cmd("mkdir -p {}".format(scp_path))
         #创建用户指定文件夹
         con.cmd("mkdir -p {}".format(scp_path2))
         #首先进行将服务器上文件scp上传到模型服务器上
-        user_file=updateFile.objects.filter(userid=userdemo,flag=0)
+        user_file=updateFile.objects.filter(userid=userdemo,flag=0,id__in=file_id_list)
         path_list=[]
         for item in user_file:
             path_list.append(os.path.join(BASE_DIR,'static','upload',str(item.inputfile)))
 
         for item in path_list:
             fname=item.split("/")[-1]
-            con.upload(item,'/home/mcstas/Documents/{}/'.format(userdemo.name))
+            con.upload(item,'/home/mcstas/Documents/{}/{}'.format(userdemo.name,fname))
         # 将上传的文件标记为1
         updateFile.objects.filter(userid=userdemo, flag=0).update(flag=1)
         #在模型服务器上运行模型bash命令
         con.cmd("cd /home/mcstas/Documents/{}/".format(userdemo.name))
+
         #接收控制台输出
-        con.cmd(mingling)
+        print("当前所在位置：")
+        res=con.cmd("cd /home/mcstas/Documents/{}/;pwd;{}".format(userdemo.name,mingling))
+        print(res)
+
+
+
+        #模拟生成文件-----------------------------------------后期删除
+        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"1.txt"))
+        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"2.txt"))
+        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"3.txt"))
+
+
+
+
+
+        # con.cmd(mingling)
         #将生成的文件下载到本地
-        output=con.cmd("cd {}".format(scp_path2))
+        output1=con.cmd("ls {}".format(scp_path2)).decode()
+        print(output1)
+        output2=output1.split()
+        output=[i for i in output2 if i!=""]
+        print("当前文件夹下的内容")
+        print(output)
         output_path=[]
         for item in output:
             output_path.append('/home/mcstas/Documents/{}/{}/{}'.format(userdemo.name,dirname,item))
         #返回生成的文件进行保存到本服务器上
         #为用户创建在static/下创建用户文件/次数
-        user_download_path=os.path.join(BASE_DIR,"static",userdemo.username,str(userdemo.count))
+        user_download_path=os.path.join(BASE_DIR,"static",userdemo.name,str(userdemo.count))
         if not os.path.exists(user_download_path):
-            os.mkdir(user_download_path)
+            os.makedirs(user_download_path)
         for item in output_path:
-            con.download(item,user_download_path)
+
             name=item.split("/")[-1]
-            mainFile.objects.create(userid=userdemo,fileid=file,output_file="{}/{}/{}".format(userdemo.username,str(userdemo.count),name))  #--------------
+            con.download(item, os.path.join(BASE_DIR, "static", userdemo.name, str(userdemo.count),name))
+            mainFile.objects.create(userid=userdemo,fileid=file,output_file="{}/{}/{}".format(userdemo.name,str(userdemo.count),name))  #--------------
         # 远程连接结束
-        ssh.close()
+        con.close()
         #将文件列表进行返回
         main_file_list=mainFile.objects.filter(userid=userdemo,fileid=file)
         file_list=[]

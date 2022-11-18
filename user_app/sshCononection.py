@@ -1,5 +1,4 @@
 import paramiko
-import uuid
 
 class SSHConnection(object):
 
@@ -9,34 +8,38 @@ class SSHConnection(object):
         self.username = username
         self.pwd = pwd
         self.__k = None
+        self.transport=None
 
     def connect(self):
         transport = paramiko.Transport((self.host,self.port))
         transport.connect(username=self.username,password=self.pwd)
-        self.__transport = transport
+        self.transport = transport
 
     def close(self):
-        self.__transport.close()
+        self.transport.close()
 
     def upload(self,local_path,target_path):
         # 连接，上传
         # file_name = self.create_file()
-        sftp = paramiko.SFTPClient.from_transport(self.__transport)
+        sftp = paramiko.SFTPClient.from_transport(self.transport)
         # 将location.py 上传至服务器 /tmp/test.py
         sftp.put(local_path, target_path)
 
     def download(self,remote_path,local_path):
-        sftp = paramiko.SFTPClient.from_transport(self.__transport)
+        sftp = paramiko.SFTPClient.from_transport(self.transport)
         sftp.get(remote_path,local_path)
 
     def cmd(self, command):
         ssh = paramiko.SSHClient()
-        ssh._transport = self.__transport
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh._transport = self.transport
         # 执行命令
         stdin, stdout, stderr = ssh.exec_command(command)
         # 获取命令结果
+        in_bash=stdin.read()
         result = stdout.read()
-        print (str(result,encoding='utf-8'))
+        err=stderr.read()
+        # print (str(result,encoding='utf-8'))
         return result
 
 # ssh = SSHConnection()

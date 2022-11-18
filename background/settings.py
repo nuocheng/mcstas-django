@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
+    "channels",
     "corsheaders",
     "backadmin",
     "user_app",
@@ -139,7 +140,12 @@ STATICFILES_DIRS=[
 ]
 MEDIA_ROOT=os.path.join(BASE_DIR,"static/upload/")  #这里不是/static/upload
 
-
+ASGI_APPLICATION = "background.asgi.application"
+# CHANNEL_LAYERS = {
+#      "default": {
+#          "BACKEND": "channels.layers.InMemoryChannelLayer",
+#      }
+# }
 # session 配置
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # 引擎（默认）
 SESSION_COOKIE_SAMESITE='None'

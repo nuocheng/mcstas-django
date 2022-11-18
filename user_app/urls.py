@@ -1,5 +1,6 @@
 from django.urls import path,re_path
 from . import views
+from . import consumers
 from .views import *
 app_name="user"
 urlpatterns = [
@@ -18,6 +19,8 @@ urlpatterns = [
     path("update_many_file_user/",views.update_many_file_user,name="update_many_file_user"),
     path("delete_many_file_user/",views.delete_many_file_user,name="delete_many_file_user"),
     path("users_update_data_run/",views.users_update_data_run,name="users_update_data_run"),
+    # path('ws/result/', consumers.SyncConsumer),
+    # path('echo_once/', views.echo_once),
     path("",views.index,name="index"),
     path("welcome/",views.welcome,name="welcome"),
     path("welcome2/",views.welcome2,name="welcome2"),
