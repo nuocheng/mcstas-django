@@ -412,6 +412,24 @@ def users_deal_data(request):
             }
             file_list.append(info)
         return JsonResponse({"data": file_list})
+
+@exist_user_login
+def get_gener_file(request):
+    if request.method == 'GET':
+        userdemo = get_user(request)
+        fileid=request.GET.get("fileid")
+        update_demo=updateFile.objects.get(pk=fileid)
+        demo=mainFile.objects.filter(userid=userdemo,fileid=update_demo)
+        infos=[]
+        for item in demo:
+            info={
+                "id":item.pk,
+                "userid":item.userid.pk,
+                "outFile":item.output_file
+            }
+            infos.append(info)
+        return JsonResponse({"infos":infos})
+
 #用户登录
 def login_user(request):
     if request.method=='POST':

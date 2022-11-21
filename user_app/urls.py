@@ -20,6 +20,7 @@ urlpatterns = [
     path("delete_many_file_user/",views.delete_many_file_user,name="delete_many_file_user"),
     path("users_update_data_run/",views.users_update_data_run,name="users_update_data_run"),
     path("users_stop_run/",views.users_stop_run,name="users_stop_run"),
+    path("get_gener_file/",views.get_gener_file,name="get_gener_file"),
     # path('ws/result/', consumers.SyncConsumer),
     # path('echo_once/', views.echo_once),
     path("",views.index,name="index"),
