@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+    <head>
+        <meta charset="UTF-8">
+        <title>斩波器辅助系统</title>
+        <meta name="renderer" content="webkit">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+        <link rel="stylesheet" href="/static/css/font.css">
+        <link rel="stylesheet" href="/static/css/xadmin.css">
+		<link rel="stylesheet" href="/static/css/index.css">
+		<link rel="stylesheet" href="/static/css/bootstrap.css">
+        <script src="/static/lib/layui/layui.js" charset="utf-8"></script>
+        <script type="text/javascript" src="./js/xadmin.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+        <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+                  <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+          <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+ {% verbatim myblock %}
+        <div id="app">
+        <div class="layui-fluid">
+            <div class="layui-row layui-col-space15">
+
+                <div class="layui-col-sm12 layui-col-md6" >
+                    <div class="layui-card" >
+                        <div class="layui-card-header">基本参数</div>
+                        <div class="layui-card-body" style="min-height: 90px;">
+                            <div  id="app1" class="layui-col-sm12" >
+                                    　
+									  <!-- 主体区域 -->
+										  <section id="todoapp">
+											<!-- 输入框 -->
+
+
+											  <button v-model="inputValue" @keyup.enter="add" @click="add" autofocus="autofocus" autocomplete="off" placeholder=""
+												class="new-todo" >点击进行参数添加</button>
+
+											<!-- 列表区域 -->
+											<section class="main">
+											  <ul class="todo-list">
+                                                  <demo v-for="(item,index) in list" :index="index" @removes="remove"></demo>
+											  </ul>
+											</section>
+											<!-- 统计和清空 -->
+											<footer class="footer">
+											  <span class="todo-count" v-if="list.length!=0">
+                                                  <button class="clear-completed" style="margin-left:8px;" @click="postdata">
+												提交
+											  </button>
+											  </span>
+
+
+											  <button class="clear-completed" @click="clear_list()">
+												清空
+											  </button>
+
+											</footer>
+										  </section>
+										  <!-- 底部 -->
+
+							</div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-sm12 layui-col-md6">
+                    <div class="layui-card">
+                        <div class="layui-card-header">数据显示</div>
+                        <div class="layui-card-body" style="min-height: 400px">
+                            <div  id="app2" class="layui-col-sm12" style="height: 300px;">
+                                {{ mess }}
+							</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+ <template id="component_select">
+                                    <li class="todo" v-if="show">
+                                          <div class="view">
+                                            <span class="index">{{ index+1 }}.</span>
+                                            <div style="padding-top:6px;margin-bottom:2px;margin-left:58px;">
+
+                                                <select class="form-control col-sm-2 control-label" style="width:25%;text-align:center;margin-right:3px;" v-model="first_pro" >
+                                                       <option v-for="first in first_demo" :value="first.name">{{ first.name }}</option>
+                                                </select>
+                                                <select class="form-control col-sm-2 control-label" style="width:35%;text-align:center;margin-right:3px;" v-model="pro">
+                                                        <option v-for="second in second_list" :value="second">{{ second }}</option>
+                                                </select>
+                                                <input type="text" class="form-control" id="firstname"
+                                                               placeholder="请输入参数值" style="width:20%;padding:0;text-align:center;" value="0" v-model="value">
+                                                <button class="destroy" @click="remove(index)"></button>
+                                              </div>
+                                          </div>
+                                    </li>
+
+                                </template>
+ {% endverbatim myblock %}
+
+
+                                        <script>
+                                        Vue.component("demo",{
+                                            props:['index'],
+                                            template:"#component_select",
+                                            data(){
+                                                return{
+                                                      img_url:"",
+                                                      mess:"",
+                                                      value:"",
+                                                      pro:"",
+                                                      show:true,
+                                                      first_list:[],
+                                                      second_list:[],
+                                                      first_pro:"",
+                                                      second_pro:"",
+                                                      first_demo:[{id:1,name:"system_prop"},
+                                                          {id:2,name:"disk_prop"},
+                                                          {id:3,name:"slit1_pro"},
+                                                          {id:4,name:"slit2_pro"}],
+                                                      second_demos:[
+                                                          {
+                                                              id:5, value:['freq','nframe','sample_dis','det_dis'],pid:1
+                                                          },
+                                                          {
+                                                              id:6,
+                                                              value:['name','type','location','diameter','guide','freq','direction','phase','comment','slit'],
+                                                              pid:2
+                                                          },
+                                                          {
+                                                              id:7,value:['chopper','name','location','size','repetition'],pid:3
+                                                          },
+                                                          {
+                                                              id:8,value:['chopper','name','location','size','repetition'],pid:4
+                                                          }
+                                                      ],
+                                                }
+                                            },
+                                            methods:{
+                                                remove:function(index){
+                                                    this.show=false;
+                                                    console.log("子组件删除的id");
+                                                    console.log(index);
+                                                   // this.$emit("removes",index);
+
+                                                }
+
+                                            },
+                                             watch:{
+										     first_pro(){
+										          let id=-1;
+										          for(let first of this.first_demo){
+                                                        if(first.name === this.first_pro){
+                                                            id=first.id;
+                                                            break;
+                                                        }
+                                                  }
+                                                  this.second_list=[];
+										          for(let key in this.second_demos){
+										              if(this.second_demos[key].pid===id){
+										                  this.second_list=this.second_demos[key].value
+                                                      }
+                                                  }
+
+                                              },
+                                                 value(){
+										         //console.log("进入监控");
+										         //console.log(this.first_pro);
+										            if(this.first_pro==='undefined'|| this.first_pro===""|| this.first_pro==null){
+										                this.mess="";
+                                                        //console.log("进入前面为空的情况");
+                                                     }
+                                                     else{
+										                //console.log("不为空");
+										                this.mess='{"keyword":"'+this.first_pro+'","props":"'+this.pro+'","value":"'+this.value+'"}';
+                                                        //console.log(this.mess)
+                                                     }
+
+                                                 }
+                                            }
+                                        });
+										var app = new Vue({
+										  el: "#app",
+										  data: {
+										      mess:"",
+										      //update_data:[],
+										      update_data:"",
+											list: [],
+                                              length2:0,
+											inputValue: "请输入参数,按Enter进行添加"
+										  },
+										  methods: {
+											add: function () {
+
+											    this.list.push("");
+											},
+
+											remove:function(index){
+
+											  console.log("接收的id");
+											  console.log(index);
+											  this.list.splice(index,1);
+											},
+											clear_list:function() {
+                                                this.list = []
+                                            },
+                                              postdata:function(){
+											    this.update_data=[];
+											    for(let item of this.$children){
+											        this.update_data=this.update_data+item.mess;
+											        //this.update_data.push(JSON.parse(item.mess));
+                                                }
+
+                                                /*$.ajax({
+                                                     method:"post",
+                                                     data:{
+                                                           'keyword':this.update_data,
+                                                       },
+                                                     url:"/welcome/",
+                                                    success:function(data){
+                                                         this.mess=rep.data.message;
+                                                         $("#app2").html(this.mess);
+                                                    }
+                                                });*/
+                                                axios({
+                                                    headers: {
+                                                               'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                                                            },
+                                                     method:"post",
+                                                     data:{
+                                                         /*keyword:this.update_data,*/
+                                                         keyword:this.update_data
+
+                                                       },
+                                                     url:"/welcome/",
+
+                                                }).then(rep=>{
+                                                     this.mess=rep.data.message;
+                                                     //$("#app2").html(this.mess);
+
+                                                })
+										  },
+
+										}})
+									  </script>							　
+
+    </body>
+</html>
