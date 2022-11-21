@@ -1,0 +1,120 @@
+#管理员登录
+http://127.0.0.1:8000/backstage/login_admin/
+username,password
+
+
+成功
+{
+    "message": "success",
+    "flag": 1,
+    "code": 0,
+    "token": "8ff8c92dbf932be11f9dea17d88a48e3",
+    "username": "admin",
+    "id": 4
+}
+
+
+
+用户信息添加
+http://127.0.0.1:8000/backstage/admin_add_user_info/
+post
+username,password,ipconfig,stat
+
+{
+    "flag": 1,
+    "message": "创建成功"
+}
+
+
+#用户信息修改
+http://127.0.0.1:8000/backstage/admin_change_user_info/
+post
+id：用户ID,password,ipconfig,stat
+{
+    "flag": 1,
+    "message": "修改成功"
+}
+
+
+
+#用户信息获取
+http://127.0.0.1:8000/backstage/admin_get_one_user_info/
+get
+id:用户ID
+{
+    "data": [
+        {
+            "id": 8,
+            "name": "xiaohong",
+            "password": "kuaishou1234",
+            "ipconfig": "47.107.174.18",
+            "count": 0,
+            "create_at": "2022-11-21T03:18:39.328Z"
+        }
+    ]
+}
+
+
+#用户信息删除
+http://127.0.0.1:8000/backstage/admin_delete_user_info/
+get
+id用户ID
+{
+    "flag": 1,
+    "message": "删除成功"
+}
+
+
+
+
+
+
+#获取用户信息
+http://127.0.0.1:8000/backstage/get_user_information/
+get 
+{
+    "data": [
+        {
+            "id": 1,
+            "name": "nuocheng",
+            "password": "nuocheng",
+            "ipconfig": "47.107.174.18",
+            "count": 22,
+            "create_at": "2022-10-21T22:18:35Z"
+        },
+        {
+            "id": 3,
+            "name": "xiaoming",
+            "password": "xiaoming",
+            "ipconfig": "192.168.10.102",
+            "count": 0,
+            "create_at": "2022-10-22T08:59:46Z"
+        },
+        {
+            "id": 7,
+            "name": "admin",
+            "password": "admin",
+            "ipconfig": "47.107.174.18",
+            "count": 1,
+            "create_at": "2022-11-19T16:41:45Z"
+        },
+        {
+            "id": 9,
+            "name": "kuaishou",
+            "password": "kuaishou",
+            "ipconfig": "47.107.174.18",
+            "count": 0,
+            "create_at": "2022-11-21T03:19:54.870Z"
+        }
+    ]
+}
+
+#停止运行程序
+http://127.0.0.1:8000/users_stop_run/
+get
+{
+    "info": "停止运行"
+}
+
+
+

@@ -1,8 +1,8 @@
 import paramiko
-
+import time
 class SSHConnection(object):
 
-    def __init__(self, host='192.168.2.103', port=22, username='root',pwd='DtwfDVe3NpFnJA4'):
+    def __init__(self, host='192.168.2.103', port=22, username='root',pwd='123456'):
         self.host = host
         self.port = port
         self.username = username
@@ -37,11 +37,28 @@ class SSHConnection(object):
         stdin, stdout, stderr = ssh.exec_command(command)
         # 获取命令结果
         # in_bash=stdin.read()
-        # result = stdout.read()
-        # err=stderr.read()
+        result = stdout.read()
+        err=stderr.read()
         # print (str(result,encoding='utf-8'))
-        # print (str(err,encoding='utf-8'))
-        return stdin, stdout, stderr
+        return [result,err]
+
+    def add_user(self, command,pwd):
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh._transport = self.transport
+        # 执行命令
+        stdin, stdout, stderr = ssh.exec_command(command)
+        time.sleep(1)
+        stdin.write("{}\n".format(pwd))
+        time.sleep(1)
+        stdin.write("{}\n".format(pwd))
+        stdin.flush()
+        # 获取命令结果
+        # in_bash=stdin.read()
+        result = stdout.read()
+        err = stderr.read()
+        # print (str(result,encoding='utf-8'))
+        return [result, err]
 
 # ssh = SSHConnection()
 # ssh.connect()

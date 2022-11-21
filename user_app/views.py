@@ -172,7 +172,8 @@ def add_user_keyword(request):
             info={
                 "id":item.id,
                 "keyword":item.keyword,
-                "create_at":item.create_at
+                "create_at":item.create_at,
+                "user_sub_count":userdemo.count
             }
             info_list.append(info)
         return JsonResponse({"info":info_list})
@@ -261,19 +262,23 @@ def delete_many_file_user(request):
 def users_update_data_run(request):
     if request.method=='POST':
         userdemo = get_user(request)
+        userdemo.count+=1
+        userdemo.save()
         #------------------------数据库获取
         username=userdemo.name
-        mcstas_ip=userdemo.ipconfig
-        scp_path='/home/mcstas/Documents/{}/'.format(userdemo.name)
+        # mcstas_ip=userdemo.ipconfig
+        # scp_path='/home/{}/mcstas/Documents/{}/'.format(userdemo.name,userdemo.name)
 
         #-----------------用户上传
         fileid=request.POST.get("fileid")  #instre文件id
         file_id_list = request.POST.getlist("fileid_list") #其他文件id
+        # print(file_id_list)
         dirname=request.POST.get("dirname")
-        scp_path2 = '/home/mcstas/Documents/{}/{}/'.format(userdemo.name,dirname)
+        scp_path2 = '/home/{}/mcstas/Documents/{}/{}/'.format(userdemo.name,userdemo.name,dirname)
         ncounts=int(request.POST.get("ncounts"))
         core_type = request.POST.get("core_type")
         ncores = request.POST.get("ncores")
+        params=request.POST.get("params")
         #------------------------------------------------------后期参数可能会进行修改-------
         #获取该文件名
         file=updateFile.objects.get(pk=fileid,userid=userdemo,flag=0)
@@ -289,78 +294,68 @@ def users_update_data_run(request):
         print(mingling)
         #远程连接
         # con=ssh(host=mcstas_ip,port=22,username='root',pwd="123456")
-        con=sshs(host="47.107.174.18",port=22,username='root',pwd="DtwfDVe3NpFnJA4")
+        con=sshs(host=userdemo.ipconfig,port=22,username="root",pwd="DtwfDVe3NpFnJA4")
         con.connect()
-        #首先创建一个用户文件夹
-        con.cmd("mkdir -p {}".format(scp_path))
-        #创建用户指定文件夹
-        con.cmd("mkdir -p {}".format(scp_path2))
+        #首先创建该用户
+        # res=con.cmd("adduser {};passwd {};{}".format(userdemo.name,userdemo.name,str(userdemo.name))*3)
+        # print("创建文件，用户")
+        # print(res)
+        #首先创建一个用户文件夹和输出文件夹
+        res=con.cmd("mkdir -p {}".format(scp_path2))
+        print("创建文件成功")
+        print(res)
         #首先进行将服务器上文件scp上传到模型服务器上
+        print(file_id_list)
         user_file=updateFile.objects.filter(userid=userdemo,flag=0,id__in=file_id_list)
+        print("用户要上传的文件的数量")
+        print(len(user_file))
         path_list=[]
         for item in user_file:
             path_list.append(os.path.join(BASE_DIR,'static','upload',str(item.inputfile)))
 
+
         for item in path_list:
             fname=item.split("/")[-1]
-            con.upload(item,'/home/mcstas/Documents/{}/{}'.format(userdemo.name,fname))
+            con.upload(item,'/home/{}/mcstas/Documents/{}/{}'.format(userdemo.name,userdemo.name,fname))
+            print('/home/{}/mcstas/Documents/{}/{}'.format(userdemo.name,userdemo.name,fname))
+        print("上传文件成功")
         # 将上传的文件标记为1
-        updateFile.objects.filter(userid=userdemo, flag=0).update(flag=1)
-        #在模型服务器上运行模型bash命令
-        con.cmd("cd /home/mcstas/Documents/{}/".format(userdemo.name))
-
-        #接收控制台输出
-        print("当前所在位置：")
-        res=con.cmd("cd /home/mcstas/Documents/{}/;pwd;{}".format(userdemo.name,mingling))
-        print(res)
-
-
-
-        #模拟生成文件-----------------------------------------后期删除
-        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"1.txt"))
-        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"2.txt"))
-        con.cmd("touch /home/mcstas/Documents/{}/{}/{}".format(userdemo.name,dirname,"3.txt"))
-
-
-
-
-
-        # con.cmd(mingling)
-        #将生成的文件下载到本地
-        output1=con.cmd("ls {}".format(scp_path2)).decode()
-        print(output1)
-        output2=output1.split()
-        output=[i for i in output2 if i!=""]
-        print("当前文件夹下的内容")
-        print(output)
-        output_path=[]
-        for item in output:
-            output_path.append('/home/mcstas/Documents/{}/{}/{}'.format(userdemo.name,dirname,item))
-        #返回生成的文件进行保存到本服务器上
-        #为用户创建在static/下创建用户文件/次数
-        user_download_path=os.path.join(BASE_DIR,"static",userdemo.name,str(userdemo.count))
-        if not os.path.exists(user_download_path):
-            os.makedirs(user_download_path)
-        for item in output_path:
-
-            name=item.split("/")[-1]
-            con.download(item, os.path.join(BASE_DIR, "static", userdemo.name, str(userdemo.count),name))
-            mainFile.objects.create(userid=userdemo,fileid=file,output_file="{}/{}/{}".format(userdemo.name,str(userdemo.count),name))  #--------------
-        # 远程连接结束
         con.close()
-        #将文件列表进行返回
-        main_file_list=mainFile.objects.filter(userid=userdemo,fileid=file)
-        file_list=[]
-        # print(main_file_list)
-        for item in main_file_list:
-            info={
-                "id":item.pk,
-                "username":item.userid.name,
-                "fileid_name":str(item.fileid.inputfile),
-                "output_file":item.output_file
-            }
-            file_list.append(info)
-        return JsonResponse({"data":file_list})
+        updateFile.objects.filter(userid=userdemo, flag=0,id__in=file_id_list).update(flag=1)
+        #在模型服务器上运行模型bash命令
+        # res=con.cmd("cd /home/{}/mcstas/Documents/{}/".format(userdemo.name,userdemo.name))
+        # print("运行bash命令")
+        # print(res)
+        # #接收控制台输出
+        # print("当前所在位置：")
+        # #http
+        # res=con.cmd("cd /home/{}/mcstas/Documents/{}/;{}".format(userdemo.name,userdemo.name,mingling))
+        # print(res)
+
+        return JsonResponse({"bash":"cd /home/{}/mcstas/Documents/{}/;{}".format(userdemo.name,userdemo.name,mingling),
+                             "username":userdemo.name,
+                             "userid":userdemo.pk,
+                             "download_dir":"ls {}".format(scp_path2),
+                             "dirname":dirname,
+                            "message":"start",
+                             "file_id":fileid})
+
+
+
+#停止运行
+@exist_user_login
+def users_stop_run(request):
+    if request.method=='GET':
+        userdemo = get_user(request)
+        con = sshs(host=userdemo.ipconfig, port=22, username="root")
+        con.connect()
+        con.upload(os.path.join(BASE_DIR,'static','stop.sh'), '/home/{}/stop.sh'.format(userdemo.name))
+        stdin,stdout,stderr=con.cmd("cd /home/{};bash stop.sh".format(userdemo.name))
+        if stdout:
+            return JsonResponse({"info":stdout.read().decode()})
+        else:
+            return JsonResponse({"info": "停止运行"})
+
 
 #用户点击数据进行数据可视化
 @exist_user_login
