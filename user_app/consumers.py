@@ -13,7 +13,7 @@ CONSUMER_OBJECT_LIST = []
 
 class sshConsumer(WebsocketConsumer):
     def connect(self):
-        self.username = "root"  # 临时固定用户名
+        self.username = "msc"  # 临时固定用户名
         print('WebSocket建立连接：', self.username)
         # 直接从用户指定的通道名称构造通道组名称
         self.channel_group_name = 'msg_%s' % self.username
@@ -92,35 +92,36 @@ class sshConsumer(WebsocketConsumer):
                 # 远程连接服务器
                 ssh = paramiko.SSHClient()
                 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                ssh.connect(hostname=ipconfig, username="root", password="DtwfDVe3NpFnJA4")
+                ssh.connect(hostname=ipconfig, username="mcstas", password="chopper")
                 # 务必要加上get_pty=True,否则执行命令会没有权限
                 # stdin, stdout, stderr = ssh.cmd(bash)
-                # stdin, stdout, stderr = ssh.exec_command(bash,get_pty=True)
-                stdin, stdout, stderr = ssh.exec_command("bash /opt/test.sh",get_pty=True)
+                stdin, stdout, stderr = ssh.exec_command(bash,get_pty=True,bufsize=-1)
+                # stdin, stdout, stderr = ssh.exec_command("bash /opt/test.sh",get_pty=True)
                 # print(stdout.read())
 
                 # result = stdout.read()
                 # 循环发送消息给前端页面
-
                 while True:
                     nextline = stdout.readline().strip()  # 读取脚本输出内容
                     self.send(
                         text_data=nextline
                     )
                     print("已发送消息:%s" % nextline)
-                    # 判断消息为空时,退出循环
-                    if not nextline:
+
+                    if 'Placing instr file copy' in nextline:
+                        break
+                    if 'not found' in nextline:
                         break
 
-                while True:
-                    nextline = stderr.readline().strip()  # 读取脚本输出内容
-                    self.send(
-                        text_data=nextline
-                    )
-                    print("已发送消息:%s" % nextline)
-                    # 判断消息为空时,退出循环
-                    if not nextline:
-                        break
+                # while True:
+                #     nextline = stderr.readline().strip()  # 读取脚本输出内容
+                #     self.send(
+                #         text_data=nextline
+                #     )
+                #     print("已发送消息:%s" % nextline)
+                #     # 判断消息为空时,退出循环
+                #     if not nextline:
+                #         break
 
                 # self.send(
                 #     text_data=(str(stderr.read(),encoding='utf-8'))

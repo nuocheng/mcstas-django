@@ -13,7 +13,6 @@ from .mcstastools import *
 from collections import defaultdict
 from backadmin.models import *
 from background.settings import BASE_DIR
-# Create your views here.
 #文件目录生成
 def make_dis(username):
     path=os.path.join(BASE_DIR,'static','upload',username)
@@ -274,11 +273,14 @@ def users_update_data_run(request):
         file_id_list = request.POST.getlist("fileid_list") #其他文件id
         # print(file_id_list)
         dirname=request.POST.get("dirname")
-        scp_path2 = '/home/{}/mcstas/Documents/{}/{}/'.format(userdemo.name,userdemo.name,dirname)
+        scp_path2 = '/home/mcstas/Documents/{}/{}/'.format(userdemo.name,dirname)
+        scppath2 = '/home/mcstas/Documents/{}/'.format(userdemo.name)
         ncounts=int(request.POST.get("ncounts"))
         core_type = request.POST.get("core_type")
-        ncores = request.POST.get("ncores")
+        ncores = int(request.POST.get("ncores"))
         params=request.POST.get("params")
+        params=params.replace("'",'"')
+        params=json.loads(params)
         #------------------------------------------------------后期参数可能会进行修改-------
         #获取该文件名
         file=updateFile.objects.get(pk=fileid,userid=userdemo,flag=0)
@@ -288,7 +290,9 @@ def users_update_data_run(request):
         a.get_instr_para()
         para_list = a.dict_para
         b = Bashline_Create(dirname, username)
-        b.instr_bash(para_list)
+        # b.instr_bash(para_list)
+        b.instr_bash(params['params'])
+        print(core_type)
         b.creat_bash_line(ncounts, instr_file, core_type=core_type, ncores=ncores)
         mingling=b.bashline  #最终命令
         print(mingling)
@@ -301,7 +305,7 @@ def users_update_data_run(request):
         # print("创建文件，用户")
         # print(res)
         #首先创建一个用户文件夹和输出文件夹
-        res=con.cmd("mkdir -p {}".format(scp_path2))
+        res=con.cmd("mkdir -p {}".format(scppath2))
         print("创建文件成功")
         print(res)
         #首先进行将服务器上文件scp上传到模型服务器上
@@ -316,8 +320,8 @@ def users_update_data_run(request):
 
         for item in path_list:
             fname=item.split("/")[-1]
-            con.upload(item,'/home/{}/mcstas/Documents/{}/{}'.format(userdemo.name,userdemo.name,fname))
-            print('/home/{}/mcstas/Documents/{}/{}'.format(userdemo.name,userdemo.name,fname))
+            con.upload(item,'/home/mcstas/Documents/{}/{}'.format(userdemo.name,fname))
+            print('/home/mcstas/Documents/{}/{}'.format(userdemo.name,fname))
         print("上传文件成功")
         # 将上传的文件标记为1
         con.close()
@@ -332,7 +336,7 @@ def users_update_data_run(request):
         # res=con.cmd("cd /home/{}/mcstas/Documents/{}/;{}".format(userdemo.name,userdemo.name,mingling))
         # print(res)
 
-        return JsonResponse({"bash":"cd /home/{}/mcstas/Documents/{}/;{}".format(userdemo.name,userdemo.name,mingling),
+        return JsonResponse({"bash":"cd /home/mcstas/Documents/{}/;{}".format(userdemo.name,mingling),
                              "username":userdemo.name,
                              "userid":userdemo.pk,
                              "download_dir":"ls {}".format(scp_path2),
@@ -429,6 +433,24 @@ def get_gener_file(request):
             }
             infos.append(info)
         return JsonResponse({"infos":infos})
+
+#进行数据展示
+@exist_user_login
+def show_gener_file(request):
+    if request.method == 'GET':
+        userdemo = get_user(request)
+        fileid = request.GET.get("fileid")
+        demo=mainFile.objects.get(pk=fileid,userid=userdemo)
+        data_path=os.path.join(BASE_DIR,'static',demo.output_file)
+        c=Read_Mcstas(data_path)
+        return JsonResponse({
+            "data":c.data.to_json(orient = "records"),
+            "image":c.plot(),
+            "down_url":"http://127.0.0.1:8000/static/"+demo.output_file
+        })
+
+
+
 
 #用户登录
 def login_user(request):
