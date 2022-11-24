@@ -13,7 +13,7 @@ from .mcstastools import *
 from collections import defaultdict
 from backadmin.models import *
 from background.settings import BASE_DIR
-#文件目录生成
+# Create your views here.
 def make_dis(username):
     path=os.path.join(BASE_DIR,'static','upload',username)
     if not os.path.exists(path):

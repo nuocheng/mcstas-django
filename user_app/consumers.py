@@ -83,12 +83,12 @@ class sshConsumer(WebsocketConsumer):
                 bash = event['bash']
                 username=event['username']
                 userid=event['userid']
-                file=event['file']
+                file_id=event['file']
                 scp_path2=event['download_dir']
                 dirname=event['dirname']
                 userdemo=userInformation.objects.get(name=username,pk=userid)
                 ipconfig=userdemo.ipconfig
-
+                bash=bash.replace("==","=")
                 # 远程连接服务器
                 ssh = paramiko.SSHClient()
                 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -101,6 +101,7 @@ class sshConsumer(WebsocketConsumer):
 
                 # result = stdout.read()
                 # 循环发送消息给前端页面
+
                 while True:
                     nextline = stdout.readline().strip()  # 读取脚本输出内容
                     self.send(
@@ -109,8 +110,19 @@ class sshConsumer(WebsocketConsumer):
                     print("已发送消息:%s" % nextline)
 
                     if 'Placing instr file copy' in nextline:
+                        self.send(
+                            text_data='\off'
+                        )
                         break
                     if 'not found' in nextline:
+                        self.send(
+                            text_data='\off'
+                        )
+                        break
+                    if 'ValueError' in nextline:
+                        self.send(
+                            text_data='\off'
+                        )
                         break
 
                 # while True:
@@ -153,7 +165,7 @@ class sshConsumer(WebsocketConsumer):
                     output_path = []
                     for item in output:
                         output_path.append(
-                            '/home/{}/mcstas/Documents/{}/{}/{}'.format(userdemo.name, userdemo.name, dirname, item))
+                            '/home/mcstas/Documents/{}/{}/{}'.format(userdemo.name, dirname, item))
 
                     # 返回生成的文件进行保存到本服务器上
                     # 为用户创建在static/下创建用户文件/次数
@@ -161,7 +173,7 @@ class sshConsumer(WebsocketConsumer):
                     if not os.path.exists(user_download_path):
                         os.makedirs(user_download_path)
 
-                    file_demo=updateFile.objects.get(pk=file)
+                    file_demo=updateFile.objects.get(pk=file_id)
                     for item in output_path:
                         name = item.split("/")[-1]
                         ssh.download(item, os.path.join(BASE_DIR, "static", userdemo.name, str(userdemo.count), name))
@@ -169,6 +181,7 @@ class sshConsumer(WebsocketConsumer):
                                                 output_file="{}/{}/{}".format(userdemo.name, str(userdemo.count),
                                                                               name))  # --------------
                     # 远程连接结束
+                res = ssh.cmd("rm -rf /home/mcstas/Documents/{}/{}".format(userdemo.name, dirname))
                 ssh.close()
                 self.disconnect(self.channel_group_name)
                 print("后端关闭websocket连接")
